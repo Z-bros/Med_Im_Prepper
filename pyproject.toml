@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "medprep-starter"
+version = "0.1.0"
+description = "Explicit preprocessing and paired augmentation for scalar medical image arrays"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+dependencies = ["numpy>=1.24,<3", "scipy>=1.10,<2", "Pillow>=10,<13"]
+
+[project.optional-dependencies]
+medical = ["pydicom>=3,<4", "nibabel>=5,<6"]
+
+[tool.setuptools.packages.find]
+include = ["medprep*"]
