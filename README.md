@@ -2,7 +2,7 @@
 
 Importable preprocessing and augmentation for **scalar 2D images and 3D volumes**.
 A small, readable starting package for classification and segmentation experiments.
-No notebook required. Python 3.10+. Version 0.1.0, MIT licensed.
+No notebook required. Python 3.10+. Version 0.2.0, MIT licensed.
 
 The interface is reusable; the preprocessing policy must be chosen for the dataset.
 The default preserves intensity values and performs no random augmentation.
@@ -64,7 +64,7 @@ x, y = sample["image"], sample["mask"]
 Image and mask must already share the same grid, orientation and physical
 alignment; equal array shapes do not prove registration. Geometric operations
 are paired. Images use linear interpolation; masks use nearest neighbor and
-remain int32. Noise only affects the image. Negative labels and float masks are
+remain int32. Intensity adjustment, blur, experimental MRI motion artifacts, and noise only affect the image. Motion-artifact masks remain targets in the reference pose, not labels of ghosted structures. Negative labels and float masks are
 rejected; supported label values are 0 through 2**31 - 1.
 
 ## Functions and outputs
@@ -73,7 +73,7 @@ rejected; supported label values are 0 through 2**31 - 1.
 | --- | --- |
 | `load_image(path)` | Return array and source-only metadata |
 | `preprocess(image, mask=None, config=...)` | Deterministic crop, clipping, normalization, resize/pad |
-| `augment(image, mask=None, config=..., seed=...)` | Paired flips/rotation plus image-only Gaussian noise |
+| `augment(image, mask=None, config=..., seed=...)` | Paired flips/rotation/translation/zoom plus image-only intensity, blur, motion artifacts and noise |
 | `MedicalPipeline(...)(image, mask=None, training=False)` | Combine both; augmentation is training-only |
 | `pipe.reseed(seed)` | Reset the augmentation random generator |
 
@@ -133,6 +133,14 @@ ct_pipe = MedicalPipeline(PreprocessConfig(
 ))
 sample = ct_pipe(hu_volume)  # supplied volume must already be calibrated to HU
 ```
+
+## Extended augmentation (0.2.0)
+
+See [AUGMENTATION.md](AUGMENTATION.md) for every new setting, axis conventions,
+experimental MRI motion limitations, and a step-by-step Notebook 05 example.
+See [UPGRADE.md](UPGRADE.md) for GitHub/Kaggle upgrade steps.
+No new runtime dependencies are required. Existing configurations still work;
+new operations are disabled by default and do not consume RNG draws when disabled.
 
 ## Configure augmentation and reproducibility
 
@@ -234,7 +242,7 @@ Synthetic unit tests validate mechanics, not clinical suitability or model gains
 The tests cover deterministic validation, reproducibility, geometry alignment,
 label preservation, normalization, 3D shape handling, and synthetic file readers.
 
-Extend `medprep/io.py` for readers and `medprep/core.py` for transforms. Before
+Extend `medprep/io.py` for readers and `medprep/core.py` / `medprep/_augmentation.py` for transforms. Before
 adding a spatial transform, test paired mask alignment and its coordinate
 convention. For full physical-space 3D workflows, integrate a geometry-aware
 framework instead of stacking more array operations into this function.
