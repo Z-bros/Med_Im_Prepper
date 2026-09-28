@@ -2,6 +2,7 @@
 from dataclasses import asdict, dataclass
 import numpy as np
 from scipy.ndimage import zoom, rotate
+from ._augmentation import validate_extra_config, validate_extra_input, apply_extras
 
 
 @dataclass(frozen=True)
@@ -51,6 +52,25 @@ class AugmentConfig:
     noise_std: float = 0.0  # output intensity units, applied after normalization
     noise_probability: float = 0.5
 
+    # New in 0.2.0. All transforms are disabled by their identity defaults.
+    translation_pixels: tuple[float, ...] | None = None  # per-axis maximum absolute shift
+    translation_probability: float = 0.5
+    zoom_range: tuple[float, float] = (1.0, 1.0)
+    zoom_axes: tuple[int, ...] | None = None  # None = all spatial axes
+    zoom_probability: float = 0.5
+    intensity_scale_range: tuple[float, float] = (1.0, 1.0)
+    intensity_shift_range: tuple[float, float] = (0.0, 0.0)
+    intensity_probability: float = 0.5
+    blur_sigma_range: tuple[float, float] = (0.0, 0.0)  # pixel/voxel units
+    blur_axes: tuple[int, ...] | None = None
+    blur_probability: float = 0.5
+    motion_degrees: float = 0.0
+    motion_translation_pixels: tuple[float, float] = (0.0, 0.0)
+    motion_axes: tuple[int, int] | None = None  # None = last two array axes
+    motion_phase_axis: int | None = None  # None = first selected motion axis
+    motion_segments: int = 3
+    motion_probability: float = 0.5
+
     def __post_init__(self):
         for p in (self.flip_probability, self.rotation_probability, self.noise_probability):
             if not np.isfinite(p) or not 0 <= p <= 1:
@@ -61,6 +81,7 @@ class AugmentConfig:
             raise ValueError('noise_std must be finite and nonnegative')
         if len(set(self.flip_axes)) != len(self.flip_axes):
             raise ValueError('flip_axes must be unique')
+        validate_extra_config(self)
 
 
 def _validate(image, mask, dims):
@@ -139,7 +160,7 @@ def preprocess(image, mask=None, *, config=None):
 
 
 def augment(image, mask=None, *, config=None, seed=None):
-    """Apply paired geometry and image-only Gaussian noise to 2D/3D arrays.
+    """Apply paired geometry and image-only intensity/artifact transforms.
 
     seed accepts an integer or numpy Generator. Reusing an integer repeats the
     exact augmentation; use a persistent Generator for a random sequence.
@@ -154,6 +175,7 @@ def augment(image, mask=None, *, config=None, seed=None):
         raise ValueError('augmentation axes must be spatial axis indices')
     if len(cfg.rotation_axes) != 2 or len(set(cfg.rotation_axes)) != 2:
         raise ValueError('rotation_axes must contain two different axes')
+    validate_extra_input(cfg, x)
     rng = np.random.default_rng(seed)
     history = []
     for axis in cfg.flip_axes:
@@ -167,11 +189,12 @@ def augment(image, mask=None, *, config=None, seed=None):
         x = rotate(x, order=1, **kwargs)
         m = None if m is None else rotate(m, order=0, **kwargs)
         history.append({'rotation_degrees': angle, 'axes': cfg.rotation_axes})
+    x, m = apply_extras(x, m, cfg, rng, history)
     if cfg.noise_std and rng.random() < cfg.noise_probability:
         x = x + rng.normal(0, cfg.noise_std, x.shape).astype(np.float32)
         history.append({'noise_std': cfg.noise_std})
     if not np.isfinite(x).all():
-        raise ValueError('augmentation produced nonfinite values; reduce noise_std')
+        raise ValueError('augmentation produced nonfinite values; reduce augmentation strength')
     return {'image': np.ascontiguousarray(x, dtype=np.float32),
             'mask': None if m is None else np.ascontiguousarray(m),
             'metadata': {'augmentation': history}}
