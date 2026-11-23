@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0 — 2026-11-23
+
+- Add `medprep.characterization`: `intensity_stats` (mean, median, std,
+  variance, min/max, percentiles, dynamic range, histogram, Shannon entropy),
+  `roi_stats` per mask label, and single-region `snr` / `cnr`.
+- Supports scalar 2D and 3D arrays, optional label masks, and reuses the
+  existing input validation. Statistics are computed in float64.
+- Add CHARACTERIZATION.md, an example script, and analytic unit tests.
+- Existing API and behavior unchanged; no new dependencies.
+
 ## 0.2.0 — 2026-09-28
 
 - Add paired random translation and centered zoom in pixel/voxel coordinates.

@@ -2,7 +2,7 @@
 
 Importable preprocessing and augmentation for **scalar 2D images and 3D volumes**.
 A small, readable starting package for classification and segmentation experiments.
-No notebook required. Python 3.10+. Version 0.2.0, MIT licensed.
+No notebook required. Python 3.10+. Version 0.3.0, MIT licensed.
 
 The interface is reusable; the preprocessing policy must be chosen for the dataset.
 The default preserves intensity values and performs no random augmentation.
@@ -76,6 +76,10 @@ rejected; supported label values are 0 through 2**31 - 1.
 | `augment(image, mask=None, config=..., seed=...)` | Paired flips/rotation/translation/zoom plus image-only intensity, blur, motion artifacts and noise |
 | `MedicalPipeline(...)(image, mask=None, training=False)` | Combine both; augmentation is training-only |
 | `pipe.reseed(seed)` | Reset the augmentation random generator |
+| `intensity_stats(image, mask=None, label=None, ...)` | First-order statistics, percentiles, histogram, entropy, dynamic range |
+| `roi_stats(image, mask, labels=None, ...)` | `intensity_stats` per mask label |
+| `snr(image, signal_mask, background_mask)` | Mean signal / background standard deviation |
+| `cnr(image, mask_a, mask_b, background_mask)` | Absolute mean difference / background standard deviation |
 
 Processing calls return a dictionary with `image`, `mask` (None if absent), and
 `metadata`. Arrays are contiguous, have no channel dimension, and inputs are
@@ -141,6 +145,21 @@ experimental MRI motion limitations, and a step-by-step Notebook 05 example.
 See [UPGRADE.md](UPGRADE.md) for GitHub/Kaggle upgrade steps.
 No new runtime dependencies are required. Existing configurations still work;
 new operations are disabled by default and do not consume RNG draws when disabled.
+
+## Image characterization (0.3.0)
+
+```python
+from medprep import intensity_stats, roi_stats, snr
+stats = intensity_stats(image, mask, label=1)  # mean, median, std, percentiles, entropy, ...
+per_label = roi_stats(image, mask)
+quality = snr(image, mask == 1, background_mask)
+```
+
+Statistics use voxel values only (array space, no spacing needed). Entropy
+depends on the histogram bins, so pass fixed edges when comparing images.
+See [CHARACTERIZATION.md](CHARACTERIZATION.md) for definitions, SNR/CNR
+assumptions and limitations, and `examples/characterization.py` for a runnable demo.
+No new dependencies; these are not IBSI-verified radiomics features.
 
 ## Configure augmentation and reproducibility
 
