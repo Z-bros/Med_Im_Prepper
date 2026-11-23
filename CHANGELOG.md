@@ -7,6 +7,10 @@
   `roi_stats` per mask label, and single-region `snr` / `cnr`.
 - Supports scalar 2D and 3D arrays, optional label masks, and reuses the
   existing input validation. Statistics are computed in float64.
+- Add `glcm_features` (N-D offsets, explicit quantization, scikit-image
+  graycoprops definitions), `gradient_stats` (np.gradient magnitude, optional
+  spacing and edge fraction) and `roi_morphology` (voxel count, bbox,
+  centroid, components, area/volume with explicit spacing).
 - Add CHARACTERIZATION.md, an example script, and analytic unit tests.
 - Existing API and behavior unchanged; no new dependencies.
 

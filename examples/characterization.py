@@ -21,3 +21,13 @@ for label, s in roi_stats(image, mask, bins=edges).items():
           f"p95={s['percentiles'][95]:.2f} entropy={s['entropy_bits']:.2f} bits")
 print('SNR(label 1): %.1f' % snr(image, mask == 1, background))
 print('CNR(1 vs 2): %.1f' % cnr(image, mask == 1, mask == 2, background))
+
+# Phase 2: texture, gradients and shape. Spacing must describe THIS array
+# (e.g. load_image(...)[1]['source_spacing'] for an unresized NIfTI volume).
+from medprep import glcm_features, gradient_stats, roi_morphology
+texture = glcm_features(image, mask, label=1, levels=32, value_range=(-50, 150))
+print('GLCM label 1:', {k: round(v, 3) for k, v in texture['mean'].items()})
+grad = gradient_stats(image, mask, label=1, spacing=(0.8, 0.8), edge_threshold=20)
+print('gradient label 1: mean %.1f per mm, edge fraction %.3f' % (grad['mean'], grad['edge_fraction']))
+shape = roi_morphology(mask, label=1, spacing=(0.8, 0.8))
+print('shape label 1: %d pixels, %.1f mm^2, bbox %s' % (shape['voxel_count'], shape['area'], shape['bbox']))

@@ -80,6 +80,9 @@ rejected; supported label values are 0 through 2**31 - 1.
 | `roi_stats(image, mask, labels=None, ...)` | `intensity_stats` per mask label |
 | `snr(image, signal_mask, background_mask)` | Mean signal / background standard deviation |
 | `cnr(image, mask_a, mask_b, background_mask)` | Absolute mean difference / background standard deviation |
+| `glcm_features(image, mask=None, levels=32, value_range=None, offsets=None)` | GLCM contrast, correlation, homogeneity, ASM/energy |
+| `gradient_stats(image, mask=None, spacing=None, edge_threshold=None)` | Gradient-magnitude statistics and edge fraction |
+| `roi_morphology(mask, label=None, spacing=None)` | Voxel count, bounding box, centroid, components, area/volume |
 
 Processing calls return a dictionary with `image`, `mask` (None if absent), and
 `metadata`. Arrays are contiguous, have no channel dimension, and inputs are
@@ -153,10 +156,14 @@ from medprep import intensity_stats, roi_stats, snr
 stats = intensity_stats(image, mask, label=1)  # mean, median, std, percentiles, entropy, ...
 per_label = roi_stats(image, mask)
 quality = snr(image, mask == 1, background_mask)
+texture = glcm_features(image, mask, label=1, levels=32, value_range=(-1000, 400))
+shape = roi_morphology(mask, label=1, spacing=(2.0, 0.8, 0.8))  # volume needs spacing
 ```
 
-Statistics use voxel values only (array space, no spacing needed). Entropy
-depends on the histogram bins, so pass fixed edges when comparing images.
+Statistics use voxel values in array space. Entropy and GLCM depend on
+binning/quantization, so pass fixed edges or `value_range` when comparing
+images. Gradients and area/volume use physical units only with an explicit
+`spacing` that matches the array as passed (not after resizing).
 See [CHARACTERIZATION.md](CHARACTERIZATION.md) for definitions, SNR/CNR
 assumptions and limitations, and `examples/characterization.py` for a runnable demo.
 No new dependencies; these are not IBSI-verified radiomics features.
